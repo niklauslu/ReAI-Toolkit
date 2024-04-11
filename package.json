@@ -1,0 +1,26 @@
+{
+  "name": "reai-toolkit",
+  "version": "0.0.2",
+  "description": "ReAI Toolkit",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "test": "mocha -r ts-node/register 'test/**/*.ts'",
+    "build": "tsc"
+  },
+  "author": "niklaslc512@gmail.com",
+  "license": "ISC",
+  "devDependencies": {
+    "@types/mocha": "^10.0.6",
+    "@types/node": "^20.12.7",
+    "mocha": "^10.4.0",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.4.5"
+  },
+  "dependencies": {
+    "@types/debug": "^4.1.12",
+    "axios": "^1.6.8",
+    "debug": "^4.3.4",
+    "ioredis": "^5.3.2"
+  }
+}
