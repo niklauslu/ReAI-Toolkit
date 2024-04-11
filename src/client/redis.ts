@@ -1,7 +1,7 @@
 // src/redisClient.ts
 import Redis from 'ioredis';
 import Debug from 'debug';
-import { ReAIToolkitRedisMessage } from '../types';
+import { ReAIToolkitReceiveMessage } from '../types';
 
 const debug = Debug('reai-toolkit:RedisClient');
 
@@ -31,17 +31,18 @@ export class RedisClient {
             debug('Redis Client Error: %O', err);
         });
 
-        debug('Redis client initialized');
+        console.info('Redis client initialized');
+        
     }
 
     // 订阅指定的 Redis 频道
-    async subscribe(channel: string, messageHandler: (message: ReAIToolkitRedisMessage) => void): Promise<void> {
+    async subscribe(channel: string, messageHandler: (message: ReAIToolkitReceiveMessage) => void): Promise<void> {
         await this.client.subscribe(channel);
         this.client.on('message', (channel, message) => {
             debug(`Received message on ${channel}: ${message}`);
 
             try {
-                const parsedMessage: ReAIToolkitRedisMessage = JSON.parse(message);
+                const parsedMessage: ReAIToolkitReceiveMessage = JSON.parse(message);
                 messageHandler(parsedMessage);
             } catch (error) {
                 console.error('Error parsing message from Redis:', error);

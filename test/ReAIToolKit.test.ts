@@ -5,7 +5,7 @@ describe('AiToolKit', function() {
     it('should register and return a toolId', function() {
         const tool = new ReAIToolKit({
             appId: 'test',
-            appKey: 'test',
+            appSecret: 'test',
             toolId: 'test'
         });
         const toolId = tool.start()

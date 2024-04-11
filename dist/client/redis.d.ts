@@ -1,4 +1,4 @@
-import { ReAIToolkitRedisMessage } from '../types';
+import { ReAIToolkitReceiveMessage } from '../types';
 interface RedisConfig {
     host: string;
     port: number;
@@ -9,7 +9,7 @@ interface RedisConfig {
 export declare class RedisClient {
     private client;
     constructor(config: RedisConfig);
-    subscribe(channel: string, messageHandler: (message: ReAIToolkitRedisMessage) => void): Promise<void>;
+    subscribe(channel: string, messageHandler: (message: ReAIToolkitReceiveMessage) => void): Promise<void>;
     publish(channel: string, message: string): Promise<void>;
 }
 export {};

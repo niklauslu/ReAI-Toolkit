@@ -11,7 +11,7 @@ const debug = (0, debug_1.default)('reai-toolkit:ReAIToolKit');
 class ReAIToolKit {
     toolId;
     appId;
-    appKey;
+    appSecret;
     apiHost;
     redisHost;
     redisPort;
@@ -19,9 +19,9 @@ class ReAIToolKit {
     redisClient;
     messageHandler;
     constructor(config) {
-        this.appId = config.appId;
         this.toolId = config.toolId;
-        this.appKey = config.appKey;
+        this.appId = config.appId;
+        this.appSecret = config.appSecret;
         this.apiHost = config.apiHost || process.env.REAI_API_HOST || 'https://api.ai.cloudos.com';
         this.redisHost = config.redisHost || process.env.REAI_REDIS_HOST || 'api.cloudos.com';
         this.redisPort = config.redisPort || parseInt(process.env.REAI_REDIS_PORT) || 6379;
@@ -38,6 +38,10 @@ class ReAIToolKit {
             console.error('Tool not registered');
             throw new Error('Tool not registered');
         }
+        if (!this.appId || !this.appSecret) {
+            console.error('AppId or AppSecret not provided');
+            throw new Error('AppId or AppSecret not provided');
+        }
         if (handler) {
             this.setMessageHandler(handler);
         }
@@ -46,8 +50,8 @@ class ReAIToolKit {
             host: this.redisHost,
             port: this.redisPort,
             username: `app:${this.appId}`,
-            password: this.appKey,
-            enableReadyCheck: true
+            password: this.appSecret,
+            enableReadyCheck: false
         });
         const channel = `server:${this.appId}:${this.toolId}`;
         await this.redisClient.subscribe(channel, this.handleMessage.bind(this));
@@ -58,22 +62,31 @@ class ReAIToolKit {
     async handleMessage(message) {
         debug(`Received message on channel ${message.channelKey}`);
         // 在这里根据 message 的内容进行处理
+        let replyData = {
+            code: 200,
+            content: message.content
+        };
+        // 回复消息
+        const replyChannel = message.channelKey; // 这个频道可以基于接收到的消息动态确定
+        const receiceAction = message.action;
         if (this.messageHandler) {
-            let replyData = await this.messageHandler(message);
-            replyData.hook = "end";
-            if (message.action === "before")
-                replyData.hook = "start";
-            if (message.action === "on")
-                replyData.hook = "replace";
-            // 转换回复数据为 JSON 字符串
-            const replyMessage = JSON.stringify(replyData);
-            // 回复消息
-            const replyChannel = message.channelKey; // 这个频道可以基于接收到的消息动态确定
-            await this.redisClient?.publish(replyChannel, replyMessage);
+            replyData = await this.messageHandler(message);
         }
         else {
             debug('No message handler set');
         }
+        // 转换回复数据为 JSON 字符串
+        this.replyMessageSend(replyData, receiceAction, replyChannel);
+        return;
+    }
+    replyMessageSend(message, action, channelKey) {
+        if (action === "before")
+            message.hook = "start";
+        if (action === "after")
+            message.hook = "end";
+        if (action === "on")
+            message.hook = "replace";
+        this.redisClient?.publish(channelKey, JSON.stringify(message));
     }
 }
 exports.ReAIToolKit = ReAIToolKit;

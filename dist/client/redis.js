@@ -23,7 +23,7 @@ class RedisClient {
             console.error('Redis Client Error', err);
             debug('Redis Client Error: %O', err);
         });
-        debug('Redis client initialized');
+        console.info('Redis client initialized');
     }
     // 订阅指定的 Redis 频道
     async subscribe(channel, messageHandler) {

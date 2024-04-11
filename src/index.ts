@@ -4,10 +4,10 @@ export { ReAIToolKit } from "./ReAIToolKit"
 
 export {
     ReAIToolkitConfig,
-    ReAIToolkitRedisMessage,
-    ReAIToolKitRedisMessageHook,
-    ReAIToolKitRedisMessageRole,
-    ReAIToolKitRedisMessageAction,
+    ReAIToolkitReceiveMessage,
+    ReAIToolKitMessageHook,
+    ReAIToolKitMessageRole,
+    ReAIToolKitMessageAction,
     ReAIToolKitReplyMessage,
     ReAITookKitMessageHandler
 } from './types'

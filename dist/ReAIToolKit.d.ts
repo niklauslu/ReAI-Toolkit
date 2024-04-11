@@ -2,7 +2,7 @@ import { ReAITookKitMessageHandler, ReAIToolkitConfig } from "./types";
 export declare class ReAIToolKit {
     private toolId;
     private appId;
-    private appKey;
+    private appSecret;
     private apiHost;
     private redisHost;
     private redisPort;
@@ -17,4 +17,5 @@ export declare class ReAIToolKit {
     start(handler?: ReAITookKitMessageHandler): Promise<void>;
     setMessageHandler(handler: ReAITookKitMessageHandler): void;
     private handleMessage;
+    private replyMessageSend;
 }
