@@ -14,46 +14,61 @@ interface RedisConfig {
 }
 
 export class RedisClient {
-    private client: Redis;
+    private publishClient: Redis; // 用于发布消息的客户端
+    private subscribeClient: Redis; // 用于订阅消息的客户端
 
     constructor(config: RedisConfig) {
-        // 初始化 Redis 客户端，并连接到 Redis 服务器
-        this.client = new Redis({ 
-            host: config.host || 'localhost', // 应替换为实际的 Redis 服务器地址
-            port: config.port || 6379,        // 应替换为实际的 Redis 端口
+        // 初始化用于发布和订阅的不同 Redis 客户端
+        this.publishClient = new Redis({ 
+            host: config.host || 'localhost', // 替换为实际的 Redis 服务器地址
+            port: config.port || 6379,        // 替换为实际的 Redis 端口
             username: config.username,
             password: config.password,
             enableReadyCheck: config.enableReadyCheck,
-        })
-
-        this.client.on('error', (err) => {
-            console.error('Redis Client Error', err);
-            debug('Redis Client Error: %O', err);
         });
 
-        console.info('Redis client initialized');
-        
+        this.subscribeClient = new Redis({ 
+            host: config.host || 'localhost', // 替换为实际的 Redis 服务器地址
+            port: config.port || 6379,        // 替换为实际的 Redis 端口
+            username: config.username,
+            password: config.password,
+            enableReadyCheck: config.enableReadyCheck,
+        });
+
+        // 对两个客户端进行错误处理
+        this.publishClient.on('error', (err) => {
+            console.error('Redis 发布客户端错误', err);
+            debug('Redis 发布客户端错误: %O', err);
+        });
+
+        this.subscribeClient.on('error', (err) => {
+            console.error('Redis 订阅客户端错误', err);
+            debug('Redis 订阅客户端错误: %O', err);
+        });
+
+        console.info('Redis 客户端已初始化');
     }
 
-    // 订阅指定的 Redis 频道
+    // 使用订阅客户端订阅特定的 Redis 频道
     async subscribe(channel: string, messageHandler: (message: ReAIToolkitReceiveMessage) => void): Promise<void> {
-        await this.client.subscribe(channel);
-        this.client.on('message', (channel, message) => {
-            debug(`Received message on ${channel}: ${message}`);
+        await this.subscribeClient.subscribe(channel);
+        this.subscribeClient.on('message', (channel, message) => {
+            debug(`接收到 ${channel} 的消息: ${message}`);
 
             try {
                 const parsedMessage: ReAIToolkitReceiveMessage = JSON.parse(message);
                 messageHandler(parsedMessage);
             } catch (error) {
-                console.error('Error parsing message from Redis:', error);
-                debug('Error parsing message: %O', error);
+                console.error('从 Redis 解析消息时出错:', error);
+                debug('解析消息出错: %O', error);
             }
         });
     }
-    // 其他方法...
 
+    // 使用发布客户端向特定的 Redis 频道发布消息
     async publish(channel: string, message: string): Promise<void> {
-        await this.client.publish(channel, message);
-        debug(`Published message to ${channel}`);
+        await this.publishClient.publish(channel, message);
+        debug(`已向 ${channel} 发布消息`);
     }
 }
+

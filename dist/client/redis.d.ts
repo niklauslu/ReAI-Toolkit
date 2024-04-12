@@ -7,7 +7,8 @@ interface RedisConfig {
     enableReadyCheck: boolean;
 }
 export declare class RedisClient {
-    private client;
+    private publishClient;
+    private subscribeClient;
     constructor(config: RedisConfig);
     subscribe(channel: string, messageHandler: (message: ReAIToolkitReceiveMessage) => void): Promise<void>;
     publish(channel: string, message: string): Promise<void>;
