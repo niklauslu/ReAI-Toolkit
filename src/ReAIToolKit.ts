@@ -13,8 +13,12 @@ export class ReAIToolKit {
     private appSecret: string;
 
     private apiHost: string;
+
     private redisHost: string;
     private redisPort: number;
+    private redisUsername: string;
+    private redisPassword: string;
+    private redisEnableReadyCheck: boolean;
 
     private registrar?: Registrar;
 
@@ -28,8 +32,13 @@ export class ReAIToolKit {
         this.appSecret = config.appSecret
 
         this.apiHost = config.apiHost || process.env.REAI_API_HOST || 'https://api.ai.cloudos.com';
+
         this.redisHost = config.redisHost || process.env.REAI_REDIS_HOST || 'api.cloudos.com';
         this.redisPort = config.redisPort || parseInt(process.env.REAI_REDIS_PORT as string) || 6379;
+        this.redisUsername = config.redisUsername || process.env.REAI_REDIS_USERNAME || `app:${this.appId}`;
+        this.redisPassword = config.redisPassword || process.env.REAI_REDIS_PASSWORD || this.appSecret;
+        this.redisEnableReadyCheck = config.redisEnableReadyCheck || process.env.REAI_REDIS_ENABLE_READY_CHECK === 'true';
+
     }
 
     // 注册获取toolId
@@ -62,9 +71,9 @@ export class ReAIToolKit {
         this.redisClient = new RedisClient({
             host: this.redisHost,
             port: this.redisPort,
-            username: `app:${this.appId}`,
-            password: this.appSecret,
-            enableReadyCheck: false
+            username: this.redisUsername,
+            password: this.redisPassword,
+            enableReadyCheck: this.redisEnableReadyCheck
         })
 
         const channel = `server:${this.appId}:${this.toolId}`

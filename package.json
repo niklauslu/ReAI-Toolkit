@@ -1,6 +1,6 @@
 {
   "name": "@re-ai/toolkit",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "ReAI Toolkit | ReAI 硬件AI工具开发",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",

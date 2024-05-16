@@ -6,6 +6,9 @@ export interface ReAIToolkitConfig {
     apiHost?: string;
     redisHost?: string;
     redisPort?: number;
+    redisUsername?: string;
+    redisPassword?: string;
+    redisEnableReadyCheck?: boolean;
 }
 export interface ReAIToolkitReceiveMessage {
     channelKey: string;

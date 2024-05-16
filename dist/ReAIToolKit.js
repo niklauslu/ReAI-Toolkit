@@ -15,6 +15,9 @@ class ReAIToolKit {
     apiHost;
     redisHost;
     redisPort;
+    redisUsername;
+    redisPassword;
+    redisEnableReadyCheck;
     registrar;
     redisClient;
     messageHandler;
@@ -25,6 +28,9 @@ class ReAIToolKit {
         this.apiHost = config.apiHost || process.env.REAI_API_HOST || 'https://api.ai.cloudos.com';
         this.redisHost = config.redisHost || process.env.REAI_REDIS_HOST || 'api.cloudos.com';
         this.redisPort = config.redisPort || parseInt(process.env.REAI_REDIS_PORT) || 6379;
+        this.redisUsername = config.redisUsername || process.env.REAI_REDIS_USERNAME || `app:${this.appId}`;
+        this.redisPassword = config.redisPassword || process.env.REAI_REDIS_PASSWORD || this.appSecret;
+        this.redisEnableReadyCheck = config.redisEnableReadyCheck || process.env.REAI_REDIS_ENABLE_READY_CHECK === 'true';
     }
     // 注册获取toolId
     async register(params) {
@@ -49,9 +55,9 @@ class ReAIToolKit {
         this.redisClient = new redis_1.RedisClient({
             host: this.redisHost,
             port: this.redisPort,
-            username: `app:${this.appId}`,
-            password: this.appSecret,
-            enableReadyCheck: false
+            username: this.redisUsername,
+            password: this.redisPassword,
+            enableReadyCheck: this.redisEnableReadyCheck
         });
         const channel = `server:${this.appId}:${this.toolId}`;
         await this.redisClient.subscribe(channel, this.handleMessage.bind(this));

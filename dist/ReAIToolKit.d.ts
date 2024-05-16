@@ -6,6 +6,9 @@ export declare class ReAIToolKit {
     private apiHost;
     private redisHost;
     private redisPort;
+    private redisUsername;
+    private redisPassword;
+    private redisEnableReadyCheck;
     private registrar?;
     private redisClient?;
     private messageHandler?;
