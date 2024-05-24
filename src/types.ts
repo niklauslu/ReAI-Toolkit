@@ -4,11 +4,11 @@ export interface ReAIToolkitConfig {
     toolId: string;
 
     apiHost?: string,
-    redisHost?: string,
-    redisPort?: number,
-    redisUsername?: string,
-    redisPassword?: string,
-    redisEnableReadyCheck?: boolean,
+    // redisHost?: string,
+    // redisPort?: number,
+    // redisUsername?: string,
+    // redisPassword?: string,
+    // redisEnableReadyCheck?: boolean,
 
 }
 
