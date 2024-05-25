@@ -4,6 +4,9 @@ export interface ReAIToolkitConfig {
     toolId: string;
 
     apiHost?: string,
+    wssHost?: string,
+    
+    messageHandlerMethod?: string
     // redisHost?: string,
     // redisPort?: number,
     // redisUsername?: string,
@@ -12,6 +15,13 @@ export interface ReAIToolkitConfig {
 
 }
 
+export interface ReAIToolkitReceiveJson {
+    jsonrpc: string;
+    id: string,
+    result: ReAIToolkitReceiveMessage | any,
+    method?: string,
+    params?: any
+}
 export interface ReAIToolkitReceiveMessage {
     channelKey: string;
     role: ReAIToolKitMessageRole;

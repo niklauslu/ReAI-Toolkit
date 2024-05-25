@@ -2,8 +2,9 @@
 import { Registrar } from "./register";
 import { WebSocket } from 'ws';
 
-import { ReAITookKitMessageHandler, ReAIToolKitMessageAction, ReAIToolKitReplyMessage, ReAIToolkitConfig, ReAIToolkitReceiveMessage } from "./types";
+import { ReAITookKitMessageHandler, ReAIToolKitMessageAction, ReAIToolKitReplyMessage, ReAIToolkitConfig, ReAIToolkitReceiveJson, ReAIToolkitReceiveMessage } from "./types";
 import { Logger } from "./utils/Logger";
+import axios from "axios";
 
 
 export class ReAIToolKit {
@@ -19,6 +20,11 @@ export class ReAIToolKit {
     // private redisClient?: RedisClient
     private messageHandler?: ReAITookKitMessageHandler
     private wsClient?: WebSocket
+    private wssHost: string;
+
+    private accessToken?: string
+
+    private messageHandlerMethod: string = "subscribe"
 
     constructor(config: ReAIToolkitConfig) {
         this.toolId = config.toolId
@@ -27,6 +33,9 @@ export class ReAIToolKit {
         this.appSecret = config.appSecret
 
         this.apiHost = config.apiHost || process.env.REAI_API_HOST || 'https://api.ai.cloudos.com';
+        this.wssHost = config.wssHost || process.env.REAI_WSS_HOST || 'wss://api.ai.cloudos.com';
+
+        if (config.messageHandlerMethod) this.messageHandlerMethod = config.messageHandlerMethod
 
     }
 
@@ -43,23 +52,32 @@ export class ReAIToolKit {
             throw new Error('AppId or AppSecret not provided');
         }
 
+        if (!this.accessToken) {
+            await this.getAccessToken()
+        }
+
         if (handler) {
             this.setMessageHandler(handler);
         }
 
         // 实际的启动逻辑
-        const channel = `server:${this.appId}:${this.toolId}`
+        // const channel = `server:${this.appId}:${this.toolId}`
         // await this.redisClient.subscribe(channel, this.handleMessage.bind(this));
-        this.wsClient = new WebSocket(this.apiHost + '/wss/?channel=' + channel);
+        const addr = `${this.wssHost}/app/${this.appId}/${this.toolId}?token=${this.accessToken}`
+        this.wsClient = new WebSocket(addr);
 
         this.wsClient.on('message', (data) => {
             try {
-                const message = JSON.parse(data.toString()) as ReAIToolkitReceiveMessage;
-                this.handleMessage(message);
+                const json = JSON.parse(data.toString()) as ReAIToolkitReceiveJson
+                if (json.method === this.messageHandlerMethod) {
+                    const message = json.result as ReAIToolkitReceiveMessage;
+                    this.handleMessage(message);
+                }
+                
             } catch (error) {
                 Logger.error('解析消息出错:', error);
             }
-            
+
         });
 
         this.wsClient.on('open', () => {
@@ -74,7 +92,7 @@ export class ReAIToolKit {
                 this.start(this.messageHandler)
                 Logger.info("WebSocket connection reconnected")
             }, 500)
-           
+
         });
 
         this.wsClient.on('error', (err) => {
@@ -117,7 +135,43 @@ export class ReAIToolKit {
         if (action === "on") message.hook = "replace"
 
         // this.redisClient?.publish(channelKey, JSON.stringify(message));
-        this.wsClient?.send(JSON.stringify(message));
+        const data = {
+            jsonrpc: "2.0",
+            id: channelKey,
+            method: "redis.publish",
+            params: message
+        }
+        this.wsClient?.send(JSON.stringify(data));
+    }
+
+    async getAccessToken(): Promise<string> {
+        try {
+            const result = await axios.post(this.apiHost + '/oauth/client_credentials', {
+                client_id: this.appId,
+                client_secret: this.appSecret,
+                grant_type: 'client_credentials',
+            }, {
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                    // 请求返回 JSON 格式
+                    'Accept': 'application/json',
+                },
+            })
+            if (result.status !== 200) {
+                throw new Error('获取 AccessToken 失败')
+            }
+
+            const data = result.data.data.token
+            const { accessToken, expiresIn} = data
+            this.accessToken = accessToken
+            // 更新token
+            setTimeout(() => {
+                this.getAccessToken()
+            }, expiresIn)
+            return accessToken
+        } catch (error: any) {
+            return Promise.reject(error.message)
+        }
     }
 
 }
