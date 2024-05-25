@@ -53,7 +53,12 @@ export class ReAIToolKit {
         }
 
         if (!this.accessToken) {
-            await this.getAccessToken()
+            try {
+                await this.getAccessToken()
+            } catch(err) {
+                throw new Error('获取accessToken失败')
+            }
+            
         }
 
         if (handler) {
@@ -144,7 +149,7 @@ export class ReAIToolKit {
         this.wsClient?.send(JSON.stringify(data));
     }
 
-    async getAccessToken(): Promise<string> {
+    async getAccessToken(): Promise<void> {
         try {
             const result = await axios.post(this.apiHost + '/oauth/client_credentials', {
                 client_id: this.appId,
@@ -162,13 +167,19 @@ export class ReAIToolKit {
             }
 
             const data = result.data.data.token
-            const { accessToken, expiresIn} = data
+            Logger.debug('获取 AccessToken 成功', data)
+            let { accessToken, expiresIn} = data
             this.accessToken = accessToken
             // 更新token
-            setTimeout(() => {
-                this.getAccessToken()
-            }, expiresIn)
-            return accessToken
+            if (expiresIn) {
+                // let expires = parseInt((expiresIn / 1000).toString())
+                if (expiresIn > 2147483647) expiresIn = 2147483647
+                setTimeout(() => {
+                    this.getAccessToken()
+                }, expiresIn)
+            }
+            
+            
         } catch (error: any) {
             return Promise.reject(error.message)
         }

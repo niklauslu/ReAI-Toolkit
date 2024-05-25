@@ -15,5 +15,5 @@ export declare class ReAIToolKit {
     setMessageHandler(handler: ReAITookKitMessageHandler): void;
     private handleMessage;
     private replyMessageSend;
-    getAccessToken(): Promise<string>;
+    getAccessToken(): Promise<void>;
 }
