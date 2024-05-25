@@ -4,41 +4,30 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.ReAIToolKit = void 0;
-const redis_1 = require("./client/redis");
-const register_1 = require("./register");
-const debug_1 = __importDefault(require("debug"));
-const debug = (0, debug_1.default)('reai-toolkit:ReAIToolKit');
+const ws_1 = require("ws");
+const Logger_1 = require("./utils/Logger");
+const axios_1 = __importDefault(require("axios"));
 class ReAIToolKit {
     toolId;
     appId;
     appSecret;
     apiHost;
-    redisHost;
-    redisPort;
-    redisUsername;
-    redisPassword;
-    redisEnableReadyCheck;
     registrar;
-    redisClient;
+    // private redisClient?: RedisClient
     messageHandler;
+    wsClient;
+    wssHost;
+    accessToken;
+    messageHandlerMethod = "subscribe";
     constructor(config) {
         this.toolId = config.toolId;
         this.appId = config.appId;
         this.appSecret = config.appSecret;
         this.apiHost = config.apiHost || process.env.REAI_API_HOST || 'https://api.ai.cloudos.com';
-        this.redisHost = config.redisHost || process.env.REAI_REDIS_HOST || 'api.cloudos.com';
-        this.redisPort = config.redisPort || parseInt(process.env.REAI_REDIS_PORT) || 6379;
-        this.redisUsername = config.redisUsername || process.env.REAI_REDIS_USERNAME || `app:${this.appId}`;
-        this.redisPassword = config.redisPassword || process.env.REAI_REDIS_PASSWORD || this.appSecret;
-        this.redisEnableReadyCheck = config.redisEnableReadyCheck || process.env.REAI_REDIS_ENABLE_READY_CHECK === 'true';
+        this.wssHost = config.wssHost || process.env.REAI_WSS_HOST || 'wss://api.ai.cloudos.com';
+        if (config.messageHandlerMethod)
+            this.messageHandlerMethod = config.messageHandlerMethod;
     }
-    // 注册获取toolId
-    async register(params) {
-        this.registrar = new register_1.Registrar(this.apiHost, params.appId, params.appSecret);
-        this.toolId = await this.registrar.register();
-        return this.toolId;
-    }
-    // 启动
     async start(handler) {
         if (!this.toolId) {
             console.error('Tool not registered');
@@ -48,25 +37,50 @@ class ReAIToolKit {
             console.error('AppId or AppSecret not provided');
             throw new Error('AppId or AppSecret not provided');
         }
+        if (!this.accessToken) {
+            await this.getAccessToken();
+        }
         if (handler) {
             this.setMessageHandler(handler);
         }
         // 实际的启动逻辑
-        this.redisClient = new redis_1.RedisClient({
-            host: this.redisHost,
-            port: this.redisPort,
-            username: this.redisUsername,
-            password: this.redisPassword,
-            enableReadyCheck: this.redisEnableReadyCheck
+        // const channel = `server:${this.appId}:${this.toolId}`
+        // await this.redisClient.subscribe(channel, this.handleMessage.bind(this));
+        const addr = `${this.wssHost}/app/${this.appId}/${this.toolId}?token=${this.accessToken}`;
+        this.wsClient = new ws_1.WebSocket(addr);
+        this.wsClient.on('message', (data) => {
+            try {
+                const json = JSON.parse(data.toString());
+                if (json.method === this.messageHandlerMethod) {
+                    const message = json.result;
+                    this.handleMessage(message);
+                }
+            }
+            catch (error) {
+                Logger_1.Logger.error('解析消息出错:', error);
+            }
         });
-        const channel = `server:${this.appId}:${this.toolId}`;
-        await this.redisClient.subscribe(channel, this.handleMessage.bind(this));
+        this.wsClient.on('open', () => {
+            Logger_1.Logger.info('WebSocket connection opened');
+        });
+        this.wsClient.on('close', () => {
+            Logger_1.Logger.warn('WebSocket connection closed');
+            this.wsClient = undefined; // 重连
+            setTimeout(() => {
+                this.start(this.messageHandler);
+                Logger_1.Logger.info("WebSocket connection reconnected");
+            }, 500);
+        });
+        this.wsClient.on('error', (err) => {
+            Logger_1.Logger.error('WebSocket error:', err);
+            this.wsClient?.close();
+        });
     }
     setMessageHandler(handler) {
         this.messageHandler = handler;
     }
     async handleMessage(message) {
-        debug(`Received message on channel ${message.channelKey}`);
+        Logger_1.Logger.debug(`Received message on channel ${message.channelKey}`);
         // 在这里根据 message 的内容进行处理
         let replyData = {
             code: 200,
@@ -79,7 +93,7 @@ class ReAIToolKit {
             replyData = await this.messageHandler(message);
         }
         else {
-            debug('No message handler set');
+            Logger_1.Logger.debug('No message handler set');
         }
         // 转换回复数据为 JSON 字符串
         this.replyMessageSend(replyData, receiceAction, replyChannel);
@@ -92,7 +106,43 @@ class ReAIToolKit {
             message.hook = "end";
         if (action === "on")
             message.hook = "replace";
-        this.redisClient?.publish(channelKey, JSON.stringify(message));
+        // this.redisClient?.publish(channelKey, JSON.stringify(message));
+        const data = {
+            jsonrpc: "2.0",
+            id: channelKey,
+            method: "redis.publish",
+            params: message
+        };
+        this.wsClient?.send(JSON.stringify(data));
+    }
+    async getAccessToken() {
+        try {
+            const result = await axios_1.default.post(this.apiHost + '/oauth/client_credentials', {
+                client_id: this.appId,
+                client_secret: this.appSecret,
+                grant_type: 'client_credentials',
+            }, {
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                    // 请求返回 JSON 格式
+                    'Accept': 'application/json',
+                },
+            });
+            if (result.status !== 200) {
+                throw new Error('获取 AccessToken 失败');
+            }
+            const data = result.data.data.token;
+            const { accessToken, expiresIn } = data;
+            this.accessToken = accessToken;
+            // 更新token
+            setTimeout(() => {
+                this.getAccessToken();
+            }, expiresIn);
+            return accessToken;
+        }
+        catch (error) {
+            return Promise.reject(error.message);
+        }
     }
 }
 exports.ReAIToolKit = ReAIToolKit;

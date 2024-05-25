@@ -4,21 +4,16 @@ export declare class ReAIToolKit {
     private appId;
     private appSecret;
     private apiHost;
-    private redisHost;
-    private redisPort;
-    private redisUsername;
-    private redisPassword;
-    private redisEnableReadyCheck;
     private registrar?;
-    private redisClient?;
     private messageHandler?;
+    private wsClient?;
+    private wssHost;
+    private accessToken?;
+    private messageHandlerMethod;
     constructor(config: ReAIToolkitConfig);
-    register(params: {
-        appId: string;
-        appSecret: string;
-    }): Promise<string>;
     start(handler?: ReAITookKitMessageHandler): Promise<void>;
     setMessageHandler(handler: ReAITookKitMessageHandler): void;
     private handleMessage;
     private replyMessageSend;
+    getAccessToken(): Promise<string>;
 }

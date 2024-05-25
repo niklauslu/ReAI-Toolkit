@@ -4,11 +4,15 @@ export interface ReAIToolkitConfig {
     appSecret: string;
     toolId: string;
     apiHost?: string;
-    redisHost?: string;
-    redisPort?: number;
-    redisUsername?: string;
-    redisPassword?: string;
-    redisEnableReadyCheck?: boolean;
+    wssHost?: string;
+    messageHandlerMethod?: string;
+}
+export interface ReAIToolkitReceiveJson {
+    jsonrpc: string;
+    id: string;
+    result: ReAIToolkitReceiveMessage | any;
+    method?: string;
+    params?: any;
 }
 export interface ReAIToolkitReceiveMessage {
     channelKey: string;
