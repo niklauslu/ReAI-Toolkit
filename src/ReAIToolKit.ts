@@ -69,9 +69,11 @@ export class ReAIToolKit {
         // const channel = `server:${this.appId}:${this.toolId}`
         // await this.redisClient.subscribe(channel, this.handleMessage.bind(this));
         const addr = `${this.wssHost}/app/${this.appId}/${this.toolId}?token=${this.accessToken}`
+        Logger.debug('连接地址:', addr)
         this.wsClient = new WebSocket(addr);
 
         this.wsClient.on('message', (data) => {
+            Logger.debug('收到消息:', data.toString());
             try {
                 const json = JSON.parse(data.toString()) as ReAIToolkitReceiveJson
                 if (json.method === this.messageHandlerMethod) {
