@@ -55,7 +55,7 @@ class ReAIToolKit {
         Logger_1.Logger.debug('连接地址:', addr);
         this.wsClient = new ws_1.WebSocket(addr);
         this.wsClient.on('message', (data) => {
-            Logger_1.Logger.debug('收到消息:', data.toString());
+            Logger_1.Logger.debug('收到消息:', data.toString().length);
             try {
                 const json = JSON.parse(data.toString());
                 if (json.method === this.messageHandlerMethod) {
@@ -91,7 +91,9 @@ class ReAIToolKit {
             Logger_1.Logger.warn('Received empty message');
             return;
         }
-        Logger_1.Logger.debug(`Received message on channel ${message.channelKey}`);
+        Logger_1.Logger.debug(`Received message on channel ${message.channelKey}}`);
+        Logger_1.Logger.debug('Message action:', message.action);
+        Logger_1.Logger.debug('Message hook', message.attrs?.hook);
         // 在这里根据 message 的内容进行处理
         let replyData = {
             code: 200,
