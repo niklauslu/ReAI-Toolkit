@@ -77,7 +77,7 @@ export class ReAIToolKit {
             try {
                 const json = JSON.parse(data.toString()) as ReAIToolkitReceiveJson
                 if (json.method === this.messageHandlerMethod) {
-                    const message = json.result as ReAIToolkitReceiveMessage;
+                    const message = json.params?.data as ReAIToolkitReceiveMessage;
                     this.handleMessage(message);
                 }
                 
@@ -113,6 +113,11 @@ export class ReAIToolKit {
     }
 
     private async handleMessage(message: ReAIToolkitReceiveMessage): Promise<void> {
+        if (!message) {
+            Logger.warn('Received empty message');
+            return;
+        }
+        
         Logger.debug(`Received message on channel ${message.channelKey}`);
 
         // 在这里根据 message 的内容进行处理

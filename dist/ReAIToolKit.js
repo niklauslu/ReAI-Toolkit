@@ -59,7 +59,7 @@ class ReAIToolKit {
             try {
                 const json = JSON.parse(data.toString());
                 if (json.method === this.messageHandlerMethod) {
-                    const message = json.result;
+                    const message = json.params?.data;
                     this.handleMessage(message);
                 }
             }
@@ -87,6 +87,10 @@ class ReAIToolKit {
         this.messageHandler = handler;
     }
     async handleMessage(message) {
+        if (!message) {
+            Logger_1.Logger.warn('Received empty message');
+            return;
+        }
         Logger_1.Logger.debug(`Received message on channel ${message.channelKey}`);
         // 在这里根据 message 的内容进行处理
         let replyData = {

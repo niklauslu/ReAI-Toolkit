@@ -10,9 +10,13 @@ export interface ReAIToolkitConfig {
 export interface ReAIToolkitReceiveJson {
     jsonrpc: string;
     id: string;
-    result: ReAIToolkitReceiveMessage | any;
+    result?: any;
     method?: string;
-    params?: any;
+    params?: ReAIToolkitParamsSubscribe;
+}
+export interface ReAIToolkitParamsSubscribe {
+    data: ReAIToolkitReceiveMessage;
+    _channel: string;
 }
 export interface ReAIToolkitReceiveMessage {
     channelKey: string;
@@ -21,6 +25,7 @@ export interface ReAIToolkitReceiveMessage {
     msgId: string;
     action: ReAIToolKitMessageAction;
     attrs?: Record<string, any>;
+    file?: Record<string, any>;
 }
 export interface ReAIToolKitReplyMessage {
     code: 200 | 202;

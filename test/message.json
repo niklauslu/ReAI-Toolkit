@@ -1,0 +1,30 @@
+{
+    "jsonrpc": "2.0",
+    "id": "42ae7c5f1229488eb379586f4d62bf2b",
+    "method": "subscribe",
+    "params": {
+        "data": {
+            "role": "user",
+            "msgId": "1221ece4d94645dba2c49712fc489328",
+            "content": "",
+            "attrs": {
+                "data": {
+                    "mode": "asr",
+                    "type": "audio",
+                    "data": "",
+                    "index": 0
+                },
+                "hook": "start"
+            },
+            "file": {
+                "mode": "asr",
+                "type": "audio",
+                "data": "",
+                "index": 0
+            },
+            "action": "before",
+            "channelKey": "app:Z9LCxmD3fSur5cQKzTrevFFp:Ff8MAzWunevGEj7iQgXjDSlQ:e23e350098cf42e1"
+        },
+        "_channel": "server:Z9LCxmD3fSur5cQKzTrevFFp:Ff8MAzWunevGEj7iQgXjDSlQ"
+    }
+}
