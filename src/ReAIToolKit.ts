@@ -77,7 +77,15 @@ export class ReAIToolKit {
         this.wsClient.on('message', (data) => {
             Logger.debug('收到消息:', data.toString().length);
             try {
-                const json = JSON.parse(data.toString()) as ReAIToolkitReceiveJson
+                const message = data.toString();
+                if (message.toLowerCase() === "pong") {
+                    Logger.debug('收到心跳:', new Date().toLocaleString());
+                    return
+                } else if (!message.startsWith("{") || !message.endsWith("}")) {
+                    Logger.debug('收到无效消息:', message);
+                    return
+                }
+                const json = JSON.parse(message) as ReAIToolkitReceiveJson
                 if (json.method === this.messageHandlerMethod) {
                     const message = json.params?.data as ReAIToolkitReceiveMessage;
                     this.handleMessage(message);

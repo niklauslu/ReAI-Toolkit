@@ -21,25 +21,25 @@ class Logger {
     static error(...args) {
         this.initialize();
         if (this.logLevel >= LogLevel.ERROR) {
-            console.error(LOGGER_PREFIX, ...args);
+            console.error(LOGGER_PREFIX + "[ERROR]", ...args);
         }
     }
     static warn(...args) {
         this.initialize();
         if (this.logLevel >= LogLevel.WARN) {
-            console.warn(LOGGER_PREFIX, ...args);
+            console.warn(LOGGER_PREFIX + "[WARN]", ...args);
         }
     }
     static info(...args) {
         this.initialize();
         if (this.logLevel >= LogLevel.INFO) {
-            console.log(LOGGER_PREFIX, ...args);
+            console.log(LOGGER_PREFIX + "[INFO]", ...args);
         }
     }
     static debug(...args) {
         this.initialize();
         if (this.logLevel >= LogLevel.DEBUG) {
-            console.debug(LOGGER_PREFIX, ...args);
+            console.debug(LOGGER_PREFIX + "[DEBUG]", ...args);
         }
     }
 }
