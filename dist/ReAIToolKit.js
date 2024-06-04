@@ -19,6 +19,7 @@ class ReAIToolKit {
     wssHost;
     accessToken;
     messageHandlerMethod = "subscribe";
+    heartbeatInterval;
     constructor(config) {
         this.toolId = config.toolId;
         this.appId = config.appId;
@@ -69,9 +70,11 @@ class ReAIToolKit {
         });
         this.wsClient.on('open', () => {
             Logger_1.Logger.info('WebSocket connection opened');
+            this.startHeartbeat();
         });
         this.wsClient.on('close', () => {
             Logger_1.Logger.warn('WebSocket connection closed');
+            this.stopHeartbeat();
             this.wsClient = undefined; // 重连
             setTimeout(() => {
                 this.start(this.messageHandler);
@@ -160,6 +163,27 @@ class ReAIToolKit {
         }
         catch (error) {
             return Promise.reject(error.message);
+        }
+    }
+    startHeartbeat() {
+        const heartbeatIntervalMs = 5000; // 心跳间隔时间（毫秒）
+        this.heartbeatInterval = setInterval(() => {
+            Logger_1.Logger.info('Heartbeat: Server is alive');
+            // 这里可以添加更多心跳检测逻辑，例如检查依赖服务的健康状态
+            this.wsClient?.send('ping', (err) => {
+                if (err) {
+                    Logger_1.Logger.warn('Heartbeat: Ping failed');
+                }
+                else {
+                    Logger_1.Logger.info('Heartbeat: Ping sent');
+                }
+            });
+        }, heartbeatIntervalMs);
+    }
+    stopHeartbeat() {
+        if (this.heartbeatInterval) {
+            clearInterval(this.heartbeatInterval);
+            this.heartbeatInterval = undefined;
         }
     }
 }

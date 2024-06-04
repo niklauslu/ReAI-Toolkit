@@ -10,10 +10,13 @@ export declare class ReAIToolKit {
     private wssHost;
     private accessToken?;
     private messageHandlerMethod;
+    private heartbeatInterval?;
     constructor(config: ReAIToolkitConfig);
     start(handler?: ReAITookKitMessageHandler): Promise<void>;
     setMessageHandler(handler: ReAITookKitMessageHandler): void;
     private handleMessage;
     private replyMessageSend;
     getAccessToken(): Promise<void>;
+    private startHeartbeat;
+    private stopHeartbeat;
 }

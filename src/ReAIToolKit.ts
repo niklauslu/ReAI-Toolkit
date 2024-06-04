@@ -26,6 +26,8 @@ export class ReAIToolKit {
 
     private messageHandlerMethod: string = "subscribe"
 
+    private heartbeatInterval?: NodeJS.Timeout;
+
     constructor(config: ReAIToolkitConfig) {
         this.toolId = config.toolId
 
@@ -55,10 +57,10 @@ export class ReAIToolKit {
         if (!this.accessToken) {
             try {
                 await this.getAccessToken()
-            } catch(err) {
+            } catch (err) {
                 throw new Error('获取accessToken失败')
             }
-            
+
         }
 
         if (handler) {
@@ -80,7 +82,7 @@ export class ReAIToolKit {
                     const message = json.params?.data as ReAIToolkitReceiveMessage;
                     this.handleMessage(message);
                 }
-                
+
             } catch (error) {
                 Logger.error('解析消息出错:', error);
             }
@@ -89,11 +91,14 @@ export class ReAIToolKit {
 
         this.wsClient.on('open', () => {
             Logger.info('WebSocket connection opened');
+            this.startHeartbeat();
         });
 
         this.wsClient.on('close', () => {
 
             Logger.warn('WebSocket connection closed');
+            this.stopHeartbeat();
+
             this.wsClient = undefined // 重连
             setTimeout(() => {
                 this.start(this.messageHandler)
@@ -177,7 +182,7 @@ export class ReAIToolKit {
 
             const data = result.data.data.token
             Logger.debug('获取 AccessToken 成功', data)
-            let { accessToken, expiresIn} = data
+            let { accessToken, expiresIn } = data
             this.accessToken = accessToken
             // 更新token
             if (expiresIn) {
@@ -187,10 +192,33 @@ export class ReAIToolKit {
                     this.getAccessToken()
                 }, expiresIn)
             }
-            
-            
+
+
         } catch (error: any) {
             return Promise.reject(error.message)
+        }
+    }
+
+    private startHeartbeat() {
+        const heartbeatIntervalMs = 5000; // 心跳间隔时间（毫秒）
+
+        this.heartbeatInterval = setInterval(() => {
+            Logger.info('Heartbeat: Server is alive');
+            // 这里可以添加更多心跳检测逻辑，例如检查依赖服务的健康状态
+            this.wsClient?.send('ping', (err) => {
+                if (err) {
+                    Logger.warn('Heartbeat: Ping failed');
+                } else {
+                    Logger.info('Heartbeat: Ping sent');
+                }
+            });
+        }, heartbeatIntervalMs);
+    }
+
+    private stopHeartbeat() {
+        if (this.heartbeatInterval) {
+            clearInterval(this.heartbeatInterval);
+            this.heartbeatInterval = undefined;
         }
     }
 
