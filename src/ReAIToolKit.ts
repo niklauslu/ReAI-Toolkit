@@ -200,7 +200,7 @@ export class ReAIToolKit {
     }
 
     private startHeartbeat() {
-        const heartbeatIntervalMs = 5000; // 心跳间隔时间（毫秒）
+        const heartbeatIntervalMs = parseInt(process.env.REAI_TOOLKIT_HEARTBEAT_MS as string) || 45000; // 心跳间隔时间（毫秒）
 
         this.heartbeatInterval = setInterval(() => {
             Logger.info('Heartbeat: Server is alive');

@@ -166,7 +166,7 @@ class ReAIToolKit {
         }
     }
     startHeartbeat() {
-        const heartbeatIntervalMs = 5000; // 心跳间隔时间（毫秒）
+        const heartbeatIntervalMs = parseInt(process.env.REAI_TOOLKIT_HEARTBEAT_MS) || 45000; // 心跳间隔时间（毫秒）
         this.heartbeatInterval = setInterval(() => {
             Logger_1.Logger.info('Heartbeat: Server is alive');
             // 这里可以添加更多心跳检测逻辑，例如检查依赖服务的健康状态
