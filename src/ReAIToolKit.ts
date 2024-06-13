@@ -1,6 +1,6 @@
 
 import { Registrar } from "./register";
-import { WebSocket } from 'ws';
+import { CloseEvent, ErrorEvent, Event, MessageEvent, WebSocket } from 'ws';
 
 import { ReAITookKitMessageHandler, ReAIToolKitMessageAction, ReAIToolKitReplyMessage, ReAIToolkitConfig, ReAIToolkitReceiveJson, ReAIToolkitReceiveMessage } from "./types";
 import { Logger } from "./utils/Logger";
@@ -19,8 +19,9 @@ export class ReAIToolKit {
 
     // private redisClient?: RedisClient
     private messageHandler?: ReAITookKitMessageHandler
-    private wsClient?: WebSocket
+    // private wsClient?: WebSocket
     private wssHost: string;
+    private ws?: WebSocket
 
     private accessToken?: string
 
@@ -72,14 +73,25 @@ export class ReAIToolKit {
         // await this.redisClient.subscribe(channel, this.handleMessage.bind(this));
         const addr = `${this.wssHost}/app/${this.appId}/${this.toolId}?token=${this.accessToken}`
         Logger.debug('连接地址:', addr)
-        this.wsClient = new WebSocket(addr);
+        const client = new WebSocket(addr);
 
-        this.wsClient.on('message', (data) => {
+        client.onopen = (e: Event) => {
+            Logger.info('WebSocket connection opened', e.type);
+            this.ws = client
+            this.startHeartbeat();
+        }
+
+        client.onmessage = (e: MessageEvent) => {
+            const data = e.data
             Logger.debug('收到消息:', data.toString().length);
             try {
                 const message = data.toString();
                 if (message.toLowerCase() === "pong") {
                     Logger.debug('收到心跳:', new Date().toLocaleString());
+                    return
+                } else if (message.startsWith("Unauthorized")) {
+                    Logger.error('认证失败:', message);
+                    client.close()
                     return
                 } else if (!message.startsWith("{") || !message.endsWith("}")) {
                     Logger.debug('收到无效消息:', message);
@@ -94,31 +106,71 @@ export class ReAIToolKit {
             } catch (error) {
                 Logger.error('解析消息出错:', error);
             }
+        }
 
-        });
-
-        this.wsClient.on('open', () => {
-            Logger.info('WebSocket connection opened');
-            this.startHeartbeat();
-        });
-
-        this.wsClient.on('close', () => {
-
-            Logger.warn('WebSocket connection closed');
+        client.onclose = (e: CloseEvent) => {
+            Logger.warn('WebSocket connection closed', e.code, e.reason);
             this.stopHeartbeat();
+            this.ws = undefined // 重连
+            // if (e.code === 1006) {
+            //     return
+            // }
 
-            this.wsClient = undefined // 重连
             setTimeout(() => {
                 this.start(this.messageHandler)
                 Logger.info("WebSocket connection reconnected")
             }, 500)
+        }
 
-        });
+        client.onerror = (e: ErrorEvent) => {
+            Logger.error('WebSocket error:', e.message || e.error);
+            client.close(1000)
+        }
 
-        this.wsClient.on('error', (err) => {
-            Logger.error('WebSocket error:', err);
-            this.wsClient?.close()
-        });
+        // this.wsClient.on('message', (data) => {
+        //     Logger.debug('收到消息:', data.toString().length);
+        //     try {
+        //         const message = data.toString();
+        //         if (message.toLowerCase() === "pong") {
+        //             Logger.debug('收到心跳:', new Date().toLocaleString());
+        //             return
+        //         } else if (!message.startsWith("{") || !message.endsWith("}")) {
+        //             Logger.debug('收到无效消息:', message);
+        //             return
+        //         }
+        //         const json = JSON.parse(message) as ReAIToolkitReceiveJson
+        //         if (json.method === this.messageHandlerMethod) {
+        //             const message = json.params?.data as ReAIToolkitReceiveMessage;
+        //             this.handleMessage(message);
+        //         }
+
+        //     } catch (error) {
+        //         Logger.error('解析消息出错:', error);
+        //     }
+
+        // });
+
+
+        // this.wsClient.on('close', (code: number, reason: string) => {
+
+        //     Logger.warn('WebSocket connection closed',  code, reason);
+        //     this.stopHeartbeat();
+        //     if (code === 401) {
+        //         return
+        //     }
+
+        //     this.wsClient = undefined // 重连
+        //     setTimeout(() => {
+        //         this.start(this.messageHandler)
+        //         Logger.info("WebSocket connection reconnected")
+        //     }, 500)
+
+        // });
+
+        // this.wsClient.on('error', (err) => {
+        //     Logger.error('WebSocket error:', err);
+        //     this.wsClient?.close()
+        // });
     }
 
     setMessageHandler(handler: ReAITookKitMessageHandler): void {
@@ -168,7 +220,7 @@ export class ReAIToolKit {
             method: "redis.publish",
             params: message
         }
-        this.wsClient?.send(JSON.stringify(data));
+        this.ws?.send(JSON.stringify(data));
     }
 
     async getAccessToken(): Promise<void> {
@@ -213,7 +265,7 @@ export class ReAIToolKit {
         this.heartbeatInterval = setInterval(() => {
             Logger.info('Heartbeat: Server is alive');
             // 这里可以添加更多心跳检测逻辑，例如检查依赖服务的健康状态
-            this.wsClient?.send('ping', (err) => {
+            this.ws?.send('ping', (err) => {
                 if (err) {
                     Logger.warn('Heartbeat: Ping failed');
                 } else {

@@ -6,8 +6,8 @@ export declare class ReAIToolKit {
     private apiHost;
     private registrar?;
     private messageHandler?;
-    private wsClient?;
     private wssHost;
+    private ws?;
     private accessToken?;
     private messageHandlerMethod;
     private heartbeatInterval?;
